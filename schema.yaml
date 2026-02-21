@@ -17,6 +17,7 @@ imports:
   - linkml:types
 
 enums:
+
   RelationshipType:
     description: Types of relationships between knowledge entities.
     permissible_values:
@@ -41,6 +42,12 @@ enums:
       APPLIES_TO:
         description: Theory or method subject applies to domain or concept object.
         meaning: study:applies_to
+      ASSESSED_BY:
+        description: Subject concept or theory is assessed by object assignment.
+        meaning: study:assessed_by
+      COVERS:
+        description: Subject assignment covers or tests object concept, theory, or method.
+        meaning: study:covers
 
   DifficultyLevel:
     description: Difficulty level for learning a concept.
@@ -54,7 +61,40 @@ enums:
       EXPERT:
         description: Research-level or specialized content.
 
+  DocumentOrigin:
+    description: How the source document entered the system.
+    permissible_values:
+      USER_UPLOAD:
+        description: Manually uploaded by the user through the application UI.
+      CANVAS_API:
+        description: Automatically fetched from the Canvas LMS API.
+      WEB_SCRAPE:
+        description: Scraped or downloaded from a web URL.
+      MANUAL_ENTRY:
+        description: Content entered directly as text by the user.
+
+  AssignmentType:
+    description: Type of assignment from Canvas or user-defined.
+    permissible_values:
+      HOMEWORK:
+        description: Regular homework or problem set.
+      QUIZ:
+        description: Quiz or short assessment.
+      EXAM:
+        description: Midterm, final, or other major exam.
+      PROJECT:
+        description: Project or long-form deliverable.
+      DISCUSSION:
+        description: Discussion board post or participation assignment.
+      LAB:
+        description: Laboratory assignment or report.
+      ESSAY:
+        description: Written essay or paper.
+      OTHER:
+        description: Any other assignment type.
+
 slots:
+
   id:
     description: Unique identifier for the entity.
     identifier: true
@@ -83,6 +123,7 @@ slots:
     inlined_as_list: true
 
 classes:
+
   KnowledgeEntity:
     abstract: true
     description: Abstract base for all knowledge graph entities.
@@ -196,6 +237,51 @@ classes:
         multivalued: true
         range: Concept
 
+  Assignment:
+    is_a: KnowledgeEntity
+    description: A coursework assignment, exam, quiz, or project — typically sourced from Canvas LMS.
+    attributes:
+      assignment_type:
+        description: The category of assignment.
+        range: AssignmentType
+      course_name:
+        description: Name of the course this assignment belongs to.
+        range: string
+      course_id:
+        description: Canvas course ID or other LMS identifier.
+        range: string
+      canvas_assignment_id:
+        description: The assignment ID from the Canvas API.
+        range: integer
+      due_date:
+        description: When the assignment is due.
+        range: datetime
+      points_possible:
+        description: Maximum points available for this assignment.
+        range: float
+      submission_types:
+        description: Allowed submission formats (e.g., online_upload, online_text_entry).
+        multivalued: true
+        range: string
+      is_published:
+        description: Whether the assignment is visible to students in Canvas.
+        range: boolean
+      html_url:
+        description: Direct link to the assignment in Canvas.
+        range: uri
+      covers_concepts:
+        description: Concepts that this assignment tests or covers.
+        multivalued: true
+        range: Concept
+      covers_theories:
+        description: Theories that this assignment tests or covers.
+        multivalued: true
+        range: Theory
+      covers_methods:
+        description: Methods that this assignment tests or covers.
+        multivalued: true
+        range: Method
+
   SourceDocument:
     description: A source document from which knowledge was extracted.
     class_uri: schema:DigitalDocument
@@ -217,6 +303,16 @@ classes:
         description: Total number of pages in the document.
         range: integer
         minimum_value: 1
+      origin:
+        description: How this document entered the system (user upload, Canvas API, etc.).
+        range: DocumentOrigin
+        required: true
+      canvas_file_id:
+        description: File ID from the Canvas API, if sourced from Canvas.
+        range: integer
+      canvas_course_id:
+        description: Canvas course ID this document belongs to, if sourced from Canvas.
+        range: string
 
   ExtractionProvenance:
     description: Provenance record tracking where and how knowledge was extracted.
@@ -321,6 +417,11 @@ classes:
         multivalued: true
         inlined_as_list: true
         range: Method
+      assignments:
+        description: Assignment entities in the graph.
+        multivalued: true
+        inlined_as_list: true
+        range: Assignment
       relationships:
         description: Relationship triples in the graph.
         multivalued: true

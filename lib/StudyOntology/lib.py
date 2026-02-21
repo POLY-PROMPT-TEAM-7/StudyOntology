@@ -96,7 +96,7 @@ linkml_meta = LinkMLMeta({'default_prefix': 'study',
                            'prefix_reference': 'http://www.w3.org/2004/02/skos/core#'},
                   'study': {'prefix_prefix': 'study',
                             'prefix_reference': 'https://w3id.org/study-ontology/'}},
-     'source_file': './schema.yaml'} )
+     'source_file': 'schema.yaml'} )
 
 class RelationshipType(str, Enum):
     """
@@ -130,6 +130,14 @@ class RelationshipType(str, Enum):
     """
     Theory or method subject applies to domain or concept object.
     """
+    ASSESSED_BY = "ASSESSED_BY"
+    """
+    Subject concept or theory is assessed by object assignment.
+    """
+    COVERS = "COVERS"
+    """
+    Subject assignment covers or tests object concept, theory, or method.
+    """
 
 
 class DifficultyLevel(str, Enum):
@@ -151,6 +159,66 @@ class DifficultyLevel(str, Enum):
     EXPERT = "EXPERT"
     """
     Research-level or specialized content.
+    """
+
+
+class DocumentOrigin(str, Enum):
+    """
+    How the source document entered the system.
+    """
+    USER_UPLOAD = "USER_UPLOAD"
+    """
+    Manually uploaded by the user through the application UI.
+    """
+    CANVAS_API = "CANVAS_API"
+    """
+    Automatically fetched from the Canvas LMS API.
+    """
+    WEB_SCRAPE = "WEB_SCRAPE"
+    """
+    Scraped or downloaded from a web URL.
+    """
+    MANUAL_ENTRY = "MANUAL_ENTRY"
+    """
+    Content entered directly as text by the user.
+    """
+
+
+class AssignmentType(str, Enum):
+    """
+    Type of assignment from Canvas or user-defined.
+    """
+    HOMEWORK = "HOMEWORK"
+    """
+    Regular homework or problem set.
+    """
+    QUIZ = "QUIZ"
+    """
+    Quiz or short assessment.
+    """
+    EXAM = "EXAM"
+    """
+    Midterm, final, or other major exam.
+    """
+    PROJECT = "PROJECT"
+    """
+    Project or long-form deliverable.
+    """
+    DISCUSSION = "DISCUSSION"
+    """
+    Discussion board post or participation assignment.
+    """
+    LAB = "LAB"
+    """
+    Laboratory assignment or report.
+    """
+    ESSAY = "ESSAY"
+    """
+    Written essay or paper.
+    """
+    OTHER = "OTHER"
+    """
+    Any other assignment type.
     """
 
 
@@ -252,6 +320,32 @@ class Method(KnowledgeEntity):
     sources: Optional[list[ExtractionProvenance]] = Field(default=[], description="""Provenance records for this entity.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeEntity']} })
 
 
+class Assignment(KnowledgeEntity):
+    """
+    A coursework assignment, exam, quiz, or project — typically sourced from Canvas LMS.
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://w3id.org/study-ontology/'})
+
+    assignment_type: Optional[AssignmentType] = Field(default=None, description="""The category of assignment.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    course_name: Optional[str] = Field(default=None, description="""Name of the course this assignment belongs to.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    course_id: Optional[str] = Field(default=None, description="""Canvas course ID or other LMS identifier.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    canvas_assignment_id: Optional[int] = Field(default=None, description="""The assignment ID from the Canvas API.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    due_date: Optional[datetime ] = Field(default=None, description="""When the assignment is due.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    points_possible: Optional[float] = Field(default=None, description="""Maximum points available for this assignment.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    submission_types: Optional[list[str]] = Field(default=[], description="""Allowed submission formats (e.g., online_upload, online_text_entry).""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    is_published: Optional[bool] = Field(default=None, description="""Whether the assignment is visible to students in Canvas.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    html_url: Optional[str] = Field(default=None, description="""Direct link to the assignment in Canvas.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    covers_concepts: Optional[list[str]] = Field(default=[], description="""Concepts that this assignment tests or covers.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    covers_theories: Optional[list[str]] = Field(default=[], description="""Theories that this assignment tests or covers.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    covers_methods: Optional[list[str]] = Field(default=[], description="""Methods that this assignment tests or covers.""", json_schema_extra = { "linkml_meta": {'domain_of': ['Assignment']} })
+    id: str = Field(default=..., description="""Unique identifier for the entity.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeEntity', 'SourceDocument']} })
+    name: str = Field(default=..., description="""Human-readable name.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeEntity', 'SourceDocument'], 'slot_uri': 'schema:name'} })
+    description: Optional[str] = Field(default=None, description="""Detailed description of the entity.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeEntity', 'SourceDocument'],
+         'slot_uri': 'schema:description'} })
+    aliases: Optional[list[str]] = Field(default=[], description="""Alternative names or synonyms.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeEntity'], 'exact_mappings': ['schema:alternateName']} })
+    sources: Optional[list[ExtractionProvenance]] = Field(default=[], description="""Provenance records for this entity.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeEntity']} })
+
+
 class SourceDocument(ConfiguredBaseModel):
     """
     A source document from which knowledge was extracted.
@@ -267,6 +361,9 @@ class SourceDocument(ConfiguredBaseModel):
     file_path: Optional[str] = Field(default=None, description="""Path or URL to the source document.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceDocument']} })
     upload_date: Optional[datetime ] = Field(default=None, description="""When the document was added to the system.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceDocument']} })
     page_count: Optional[int] = Field(default=None, description="""Total number of pages in the document.""", ge=1, json_schema_extra = { "linkml_meta": {'domain_of': ['SourceDocument']} })
+    origin: DocumentOrigin = Field(default=..., description="""How this document entered the system (user upload, Canvas API, etc.).""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceDocument']} })
+    canvas_file_id: Optional[int] = Field(default=None, description="""File ID from the Canvas API, if sourced from Canvas.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceDocument']} })
+    canvas_course_id: Optional[str] = Field(default=None, description="""Canvas course ID this document belongs to, if sourced from Canvas.""", json_schema_extra = { "linkml_meta": {'domain_of': ['SourceDocument']} })
 
 
 class ExtractionProvenance(ConfiguredBaseModel):
@@ -321,6 +418,7 @@ class KnowledgeGraph(ConfiguredBaseModel):
     theories: Optional[list[Theory]] = Field(default=[], description="""Theory entities in the graph.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeGraph']} })
     persons: Optional[list[Person]] = Field(default=[], description="""Person entities in the graph.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeGraph']} })
     methods: Optional[list[Method]] = Field(default=[], description="""Method entities in the graph.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeGraph']} })
+    assignments: Optional[list[Assignment]] = Field(default=[], description="""Assignment entities in the graph.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeGraph']} })
     relationships: Optional[list[KnowledgeRelationship]] = Field(default=[], description="""Relationship triples in the graph.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeGraph']} })
     source_documents: Optional[list[SourceDocument]] = Field(default=[], description="""Source documents referenced by extracted knowledge.""", json_schema_extra = { "linkml_meta": {'domain_of': ['KnowledgeGraph']} })
 
@@ -332,6 +430,7 @@ Concept.model_rebuild()
 Theory.model_rebuild()
 Person.model_rebuild()
 Method.model_rebuild()
+Assignment.model_rebuild()
 SourceDocument.model_rebuild()
 ExtractionProvenance.model_rebuild()
 KnowledgeRelationship.model_rebuild()
