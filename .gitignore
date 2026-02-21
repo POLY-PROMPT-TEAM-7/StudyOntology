@@ -1,6 +1,8 @@
 *CLAUDE.md
 *AGENTS.md
+*PROJECT-SCOPE.md
 *.claude/
+*venv/
 *.sisyphus/
 *.opencode/
 *.logs/
