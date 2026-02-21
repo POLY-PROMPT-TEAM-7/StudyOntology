@@ -9,7 +9,10 @@ build-backend = "setuptools.build_meta"
 name = "StudyOntology"
 version = "1.0.0"
 requires-python = ">=3.13"
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
   "linkml-runtime",
   "pydantic",
   "linkml"
