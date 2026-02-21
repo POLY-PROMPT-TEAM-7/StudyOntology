@@ -1,7 +1,7 @@
 id: https://w3id.org/study-ontology/
-name: study_ontology
+name: Study Ontology
 description: LinkML schema for extracted knowledge entities and relationships.
-license: MIT
+license: APACHE 2.0
 
 prefixes:
   linkml: https://w3id.org/linkml/
