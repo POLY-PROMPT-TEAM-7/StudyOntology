@@ -1,0 +1,10 @@
+*CLAUDE.md
+*AGENTS.md
+*.claude/
+*.sisyphus/
+*.opencode/
+*.logs/
+*.vscode/
+*.egg-info
+*__pycache__/
+*plans/
