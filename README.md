@@ -1,202 +1,189 @@
 # StudyOntology
 
-Extract concepts and relationships from course materials to build interactive knowledge graphs.
+StudyOntology is a typed ontology package for student-learning knowledge graphs. It gives downstream apps a shared schema and Pydantic models for concepts, theories, methods, assignments, source documents, and confidence-scored relationships.
 
-## Overview
+This README is intentionally hackathon-first and downstream-integration-first.
 
-StudyOntology transforms scattered course materials (PDFs, slides, notes) into connected knowledge graphs. Upload your documents to see how concepts, theories, methods, and people relate to each other across your entire course.
+## Why This Project Fits the Hackathon
 
-## Features
+- Student scenario: teams can turn class content into structured graph data with consistent types.
+- Meaningful AI support: extraction systems can write into one validated graph contract instead of ad hoc JSON.
+- Demo-ready: simple create-validate-serialize flow that plugs into APIs and UIs quickly.
+- Suggested guiding category: **Studying**.
 
-- Schema-constrained AI extraction using LinkML ontology
-- Support for PDF, PowerPoint, and DOCX documents
-- Entity resolution to merge duplicate concepts
-- Interactive graph visualization with d3.js
-- Click nodes to jump to source material
-- Study path generation based on prerequisite chains
-- Export graphs as PNG or PDF
+## Demo Story (5 Minutes)
 
-## Knowledge Graph Schema
+1. Show raw extracted entities/relationships from your pipeline (or mock payload).
+2. Load them into `StudyOntology` models and validate fields/enums.
+3. Build a `KnowledgeGraph` object and serialize output for your API/database.
+4. Show a confidence-filtered relationship view in your app.
+5. Close with responsible AI notes (schema constraints, provenance, and limits).
 
-The schema is defined in LinkML (YAML) and automatically generates Pydantic models for validation and type safety.
+## Team Roles (Suggested Ownership)
 
-### Core Entity Types
+- Tech Lead: model integration, validation flow, and downstream contract stability.
+- Product Lead: student workflow framing and demo narrative.
+- Ethics Lead: provenance, confidence messaging, and failure-path transparency.
 
-All entities extend `KnowledgeEntity` with these base fields:
- `id`: Unique identifier
- `name`: Display name
- `description`: Optional detailed description
- `aliases`: Alternative names
- `sources`: Extraction provenance information
+## Architecture At a Glance
 
-#### Concept
-Core ideas and topics with academic metadata:
- `domain`: Subject area (e.g., "psychology", "neuroscience")
- `difficulty_level`: INTRODUCTORY, INTERMEDIATE, ADVANCED, or EXPERT
- `field`: Academic field
- `prerequisites`: List of prerequisite concept IDs
- `prerequisite_of`: List of concepts that depend on this one
- `related_theories`: Associated theoretical frameworks
- `related_methods`: Applicable research methods
+```mermaid
+flowchart TD
+  A[Student Materials] --> B[Extractor or LLM Pipeline]
+  B --> C[Entity/Relationship Draft JSON]
+  C --> D[StudyOntology Pydantic Models]
+  D --> E[Type + Enum + Range Validation]
+  E --> F[KnowledgeGraph Container]
+  F --> G[Downstream API/DB/UI]
 
-#### Theory
-Scientific frameworks and paradigms:
- `domain`: Subject area
- `key_figures`: Researchers who developed/advanced the theory
- `year_proposed`: Year of initial proposal
- `key_concepts`: Core concepts within the theory
+  H[Source Metadata] --> D
+  I[Provenance Snippets] --> D
+  J[Confidence Scores 0..1] --> D
+```
 
-#### Person
-Researchers and notable figures:
- `birth_year`: Year of birth
- `death_year`: Year of death (if applicable)
- `field`: Primary research domain
- `affiliation`: Institution or organization
- `notable_contributions`: Key achievements
+## Tech Stack
 
-#### Method
-Research techniques and procedures:
- `domain`: Applicable field
- `inputs`: Required inputs or materials
- `outputs`: Expected results or data
- `equipment`: Tools or apparatus needed
- `related_concepts`: Relevant theoretical concepts
-
-#### Assignment
-Course assignments linked to knowledge entities:
- `assignment_type`: HOMEWORK, QUIZ, EXAM, PROJECT, DISCUSSION, LAB, ESSAY, OTHER
- `course_name`, `course_id`: Course identification
- `canvas_assignment_id`: LMS integration ID
- `due_date`, `points_possible`: Assignment metadata
- `covers_concepts`, `covers_theories`, `covers_methods`: Knowledge coverage
-
-### Relationship Types
-
-Relationships connect entities through typed predicates:
- **prerequisite_of**: Must learn A before B
- **example_of**: A is a concrete instance of B
- **contrasts_with**: A is similar but different from B
- **located_in**: A is found within or part of B
- **produces**: A creates B as output
- **consumes**: A uses B as input
- **applies_to**: Theory or method applies to a domain
- **assessed_by**: Entity is evaluated through assignment
- **covers**: Assignment includes this entity
-
-### Graph Structure
-
-The `KnowledgeGraph` container holds:
- Collections: `concepts`, `theories`, `persons`, `methods`, `assignments`
- `relationships`: All entity connections
- `source_documents`: Original materials with provenance
-## Technology Stack
-
-- Schema Definition: LinkML + YAML
-- Model Generation: LinkML to Pydantic
-- Document Parsing: PyPDF2, python-docx, pdfplumber
-- AI Extraction: OpenAI GPT-4o Function Calling
-- Validation: Pydantic Models
-- Graph Storage: NetworkX + DuckDB
-- Visualization: d3.js + React
-- Backend: FastAPI + Python
-- DevOps: Nix + GitHub Actions
-
-## Getting Started
-
-### Prerequisites
-
-- Nix package manager
 - Python 3.13+
+- Pydantic models generated from LinkML schema
+- Nix for reproducible development/build
 
-### Development Environment
+## Run Locally
+
+### 1) Enter the dev shell
 
 ```bash
-# Enter the development shell
 nix develop
 ```
 
-This provides the `study-ontology` package, `flake8` linter, and `pyright` type checker.
-
-### Building the Package
+### 2) Build the package
 
 ```bash
 nix build
 ```
 
-### Code Quality
+### 3) Validate code quality
 
 ```bash
-# Linting
 flake8 lib/
+pyright lib/
+```
 
-# Type checking
+## Quick Start (Downstream Usage)
+
+```python
+from StudyOntology.lib import (
+    Concept,
+    DifficultyLevel,
+    KnowledgeGraph,
+    KnowledgeRelationship,
+    RelationshipType,
+)
+
+linear_algebra = Concept(
+    id="concept:linear_algebra",
+    name="Linear Algebra",
+    difficulty_level=DifficultyLevel.INTERMEDIATE,
+    domain="Mathematics",
+)
+
+svd = Concept(
+    id="concept:svd",
+    name="Singular Value Decomposition",
+    difficulty_level=DifficultyLevel.ADVANCED,
+    domain="Mathematics",
+)
+
+rel = KnowledgeRelationship(
+    subject="concept:linear_algebra",
+    predicate=RelationshipType.PREREQUISITE_OF,
+    object="concept:svd",
+    confidence=0.93,
+)
+
+graph = KnowledgeGraph(concepts=[linear_algebra, svd], relationships=[rel])
+```
+
+## Package Conventions
+
+- This repository is a **schema/models package**, not a FastAPI service.
+- Primary schema source: `schema.yaml`.
+- Generated Pydantic module: `lib/StudyOntology/lib.py`.
+- License in schema metadata: Apache 2.0.
+
+## Entity and Enum Index
+
+Core entities:
+
+- `Concept`
+- `Theory`
+- `Person`
+- `Method`
+- `Assignment`
+- `SourceDocument`
+- `KnowledgeRelationship`
+- `ExtractionProvenance`
+- `ExtractionResult`
+- `KnowledgeGraph`
+
+Enums:
+
+- `RelationshipType`: `PREREQUISITE_OF`, `EXAMPLE_OF`, `CONTRASTS_WITH`, `LOCATED_IN`, `PRODUCES`, `CONSUMES`, `APPLIES_TO`, `ASSESSED_BY`, `COVERS`
+- `DifficultyLevel`: `INTRODUCTORY`, `INTERMEDIATE`, `ADVANCED`, `EXPERT`
+- `DocumentOrigin`: `USER_UPLOAD`, `CANVAS_API`, `WEB_SCRAPE`, `MANUAL_ENTRY`
+- `AssignmentType`: `HOMEWORK`, `QUIZ`, `EXAM`, `PROJECT`, `DISCUSSION`, `LAB`, `ESSAY`, `OTHER`
+
+## Data Model Notes (For Integrators)
+
+- `KnowledgeRelationship.confidence` is constrained to `0.0..1.0`.
+- `SourceDocument.origin` is required and standardized via `DocumentOrigin`.
+- Provenance is modeled explicitly with `ExtractionProvenance` to support auditability.
+- `KnowledgeGraph` is the root container for graph exchange between services.
+
+## Responsible AI + Risk Mitigations
+
+- Validation discipline: strict typed models reduce malformed graph payloads.
+- Provenance support: source and extraction metadata can be attached to entities/relationships.
+- Confidence transparency: relationship confidence is explicit and bounded.
+- Known limitation: schema validation does not guarantee factual correctness of extracted content.
+
+## What Judges Can Verify Quickly
+
+- **Technical Impressiveness (50%)**: typed ontology + relationship constraints + graph container usable downstream.
+- **Impact (20%)**: enables student-focused study tooling to share one consistent knowledge contract.
+- **Product Thinking (10%)**: clear flow from extraction outputs to app-ready structured graph data.
+- **Use of AI to Build (10%)**: package provides stable target schema for AI extraction pipelines.
+- **Ethics / Responsible Use (10%)**: explicit provenance fields, confidence bounds, and transparent limitations.
+
+## Useful Commands
+
+```bash
+# Enter dev environment
+nix develop
+
+# Build package
+nix build
+
+# Lint + typecheck
+flake8 lib/
 pyright lib/
 ```
 
 ## Project Structure
 
-```
+```text
 lib/StudyOntology/
-  __init__.py           # Package exports
-  lib.py                # Generated Pydantic models from LinkML
-  core.py               # Core functionality (TODO)
-nix/                    # Nix configuration
-  shell.nix             # Dev shell (flake8, pyright)
-  overlay.nix           # Build overlay
-pyproject.toml          # Python project config
-flake.nix              # Nix flake entry point
-schema.yaml            # LinkML schema definition
+  __init__.py                 # Package entry
+  lib.py                      # Generated Pydantic models
+schema.yaml                   # LinkML schema source
+pyproject.toml                # setuptools package config
+flake.nix                     # Nix flake entry
+nix/
+  shell.nix                   # Dev shell
+  overlay.nix                 # Nix package overlay
 ```
 
-## Using the Pydantic Models
+## Current Scope Limitations
 
-The Pydantic models are automatically generated from `schema.yaml` using LinkML:
-
-```python
-from lib.StudyOntology.lib import (
-    Concept,
-    Theory,
-    Person,
-    Method,
-    Assignment,
-    KnowledgeGraph,
-    KnowledgeRelationship,
-    RelationshipType,
-    DifficultyLevel,
-)
-
-# Create a concept
-working_memory = Concept(
-    id="wm_001",
-    name="Working Memory",
-    description="Temporary storage system for cognitive processing",
-    domain="cognitive_psychology",
-    difficulty_level=DifficultyLevel.INTERMEDIATE,
-    field="psychology",
-    prerequisites=["attention_001", "stm_001"],
-)
-
-# Create a relationship
-rel = KnowledgeRelationship(
-    subject="wm_001",
-    predicate=RelationshipType.PREREQUISITE_OF,
-    object="executive_function_001",
-    confidence=0.95,
-)
-
-# Build a knowledge graph
-graph = KnowledgeGraph(
-    concepts=[working_memory],
-    relationships=[rel],
-)
-```
-
-All models include:
-- **Type safety**: Full type hints with Pyright validation
-- **Validation**: Pydantic validation on instantiation
-- **LinkML metadata**: Class URIs and slot URIs for semantic web integration
-- **JSON schema**: Auto-generated schemas for API validation
-
-## License
-
-Apache 2.0
+- No dedicated API server in this repository (intended for downstream integration).
+- No first-class CLI workflow is defined yet.
+- Automated test suite is not yet configured.
